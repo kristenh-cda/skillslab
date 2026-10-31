@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skills Lab</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom CSS for animations -->
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+    }
+    h1, h2, h3, .font-black {
+      font-family: 'Fredoka', sans-serif;
+    }
+    .animate-fade-in-up {
+      animation: fadeInUp 0.5s ease-out forwards;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 font-sans text-slate-800 flex flex-col m-0 p-0">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white shadow-md p-4 flex justify-between items-center rounded-b-3xl">
+    <div class="flex items-center gap-2">
+      <i data-lucide="trophy" class="text-yellow-500 w-6 h-6 sm:w-8 sm:h-8"></i>
+      <div class="flex flex-col">
+        <span class="text-xs sm:text-sm text-slate-500 font-semibold uppercase tracking-wider">High Score</span>
+        <span id="ui-high-score" class="text-lg sm:text-2xl font-black text-slate-700">0</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-4">
+      <div class="flex flex-col items-center bg-blue-50 px-4 py-1 rounded-xl border border-blue-100">
+        <span class="text-xs sm:text-sm text-blue-600 font-semibold uppercase tracking-wider">Total Score</span>
+        <span id="ui-total-score" class="text-xl sm:text-2xl font-black text-blue-700">0</span>
+      </div>
+      
+      <button onclick="toggleScoresModal(true)" class="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-xl transition-colors font-bold text-sm sm:text-base">
+        <i data-lucide="list" class="w-5 h-5"></i>
+        <span class="hidden sm:inline">View Scores</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Layout Wrapper for Sidebar + Main Content -->
+  <div class="flex-1 flex w-full max-w-7xl mx-auto p-4 gap-4 sm:gap-8 relative overflow-hidden">
+    
+    <!-- Progress Sidebar - Left -->
+    <aside id="ladder-sidebar" class="hidden md:flex flex-col w-24 bg-white/60 backdrop-blur-md rounded-3xl shadow-lg p-4 justify-between h-[600px] my-auto animate-fade-in-up">
+      <h3 class="text-center font-black text-slate-500 uppercase tracking-widest text-xs mb-2">Ladder</h3>
+      <div class="flex flex-col-reverse justify-between h-full w-full py-2 relative" id="ladder-container">
+        <!-- Background Line -->
+        <div class="absolute left-1/2 top-4 bottom-4 w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>
+        <!-- Steps will be generated dynamically -->
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col items-center justify-center relative w-full">
+      
+      <!-- START SCREEN -->
+      <div id="screen-start" class="bg-white p-8 sm:p-12 rounded-3xl shadow-xl max-w-lg w-full text-center transform transition-all animate-fade-in-up screen-section">
+        <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <i data-lucide="star" class="w-12 h-12 text-blue-500"></i>
+        </div>
+        <h1 class="text-4xl font-black text-slate-800 mb-4">Skills Lab</h1>
+        <p class="text-slate-500 font-medium mb-8">Climb the spelling ladder! Listen to the word, type it accurately, and do it fast for maximum points.</p>
+        <button onclick="startGame()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-blue-500/30 transform transition-all active:scale-95 flex items-center justify-center gap-3 text-xl">
+          <i data-lucide="play" class="w-6 h-6 fill-current"></i>
+          Start Learning
+        </button>
+      </div>
+
+      <!-- PLAYING SCREEN -->
+      <div id="screen-playing" class="hidden w-full max-w-2xl bg-white p-6 sm:p-10 rounded-3xl shadow-xl flex flex-col relative animate-fade-in-up screen-section">
+        <div class="flex justify-between items-center w-full mb-8 mt-4">
+          <div class="flex flex-col">
+            <span class="text-xs uppercase font-black text-slate-400 tracking-widest">Word Potential</span>
+            <span id="ui-word-potential" class="text-3xl font-black text-green-500">
+              1000 <span class="text-sm text-slate-400">pts</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-8 my-8">
+          <button id="btn-listen" onclick="playWord()" class="w-32 h-32 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex flex-col items-center justify-center shadow-inner transition-colors active:scale-95">
+            <i data-lucide="volume-2" class="w-12 h-12 mb-2"></i>
+            <span id="txt-listen" class="font-bold">Listen</span>
+          </button>
+
+          <form id="word-form" onsubmit="handleSubmit(event)" class="w-full flex flex-col gap-4">
+            <input
+              id="input-word"
+              type="text"
+              disabled
+              placeholder="Click 'Listen' to start!"
+              class="w-full text-center text-3xl font-bold py-4 px-6 border-4 border-slate-100 rounded-2xl focus:outline-none focus:border-blue-400 transition-colors disabled:bg-slate-50 disabled:opacity-75"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+            
+            <div id="ui-feedback" class="text-center font-bold text-lg hidden"></div>
+
+            <button 
+              id="btn-submit"
+              type="submit"
+              disabled
+              class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all text-xl"
+            >
+              Submit Word
+            </button>
+          </form>
+        </div>
+        
+        <div id="ui-info-box" class="flex items-start gap-2 bg-blue-50 text-blue-800 p-4 rounded-xl text-sm font-medium">
+          <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
+          <p>Clicking <strong>Listen</strong> starts a hidden timer. Faster, accurate typing earns more points! Mistakes reduce the word's potential score.</p>
+        </div>
+      </div>
+
+      <!-- GAME OVER / WON SCREEN -->
+      <div id="screen-end" class="hidden bg-white p-8 sm:p-12 rounded-3xl shadow-xl max-w-md w-full text-center transform transition-all animate-fade-in-up screen-section">
+        <div id="end-icon-box" class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-green-100 text-green-500">
+          <i id="end-icon" data-lucide="trophy" class="w-12 h-12"></i>
+        </div>
+        <h2 id="end-title" class="text-4xl font-black text-slate-800 mb-2">Amazing Job!</h2>
+        <p id="end-message" class="text-slate-500 font-medium mb-8">You completed the entire ladder!</p>
+        
+        <div class="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
+          <span class="text-slate-400 font-bold uppercase tracking-widest text-sm block mb-1">Final Score</span>
+          <span id="ui-final-score" class="text-5xl font-black text-indigo-600">0</span>
+        </div>
+
+        <button onclick="startGame()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 px-8 rounded-2xl shadow-lg transform transition-all active:scale-95 flex items-center justify-center gap-3 text-xl">
+          <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+          Play Again
+        </button>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scores Modal -->
+  <div id="modal-scores" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
+      <div class="bg-indigo-600 p-6 flex justify-between items-center relative">
+        <h2 class="text-2xl font-black text-white flex items-center gap-2">
+          <i data-lucide="list" class="w-6 h-6"></i> Score History
+        </h2>
+        <div class="flex items-center gap-4">
+          <!-- Subtle, hidden download button for parents -->
+          <button onclick="downloadReport()" class="w-3 h-3 rounded-full bg-indigo-400 hover:bg-indigo-300 opacity-30 transition-colors" title="Download Report"></button>
+          <button onclick="toggleScoresModal(false)" class="bg-indigo-500 hover:bg-indigo-400 text-white p-2 rounded-full transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div id="scores-list" class="p-6 overflow-y-auto flex-1 bg-slate-50 flex flex-col gap-3">
+        <!-- Scores injected here -->
+        <div class="text-center py-10 text-slate-400 font-medium">Loading scores...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div id="modal-review" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col animate-fade-in-up">
+      <div class="bg-orange-500 p-6 flex justify-center items-center">
+        <h2 class="text-2xl font-black text-white flex items-center gap-2">
+          <i data-lucide="search" class="w-6 h-6"></i> Let's check your spelling
+        </h2>
+      </div>
+      
+      <div class="p-8 flex flex-col items-center gap-8 bg-slate-50">
+        <div class="flex flex-col items-center w-full">
+          <span class="text-sm uppercase font-black text-slate-400 mb-3 tracking-widest">Correct Spelling</span>
+          <div id="review-target" class="flex gap-1 sm:gap-2 flex-wrap justify-center">
+            <!-- Letters injected here -->
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center w-full">
+          <span class="text-sm uppercase font-black text-slate-400 mb-3 tracking-widest">Your Spelling</span>
+          <div id="review-input" class="flex gap-1 sm:gap-2 flex-wrap justify-center">
+            <!-- Letters injected here -->
+          </div>
+        </div>
+
+        <button onclick="closeReviewModal()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 px-12 rounded-2xl shadow-lg transform transition-all active:scale-95 text-xl mt-4">
+          Got it, Try Again!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Game Logic -->
+  <script type="module">
+    // Firebase Modular SDK Imports
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+    import { getFirestore, collection, addDoc, onSnapshot, query } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    // Game Constants
+    const LADDER_WORDS = [
+      "because", "guitar", "people", "penguin", "curious",
+      "astronaut", "business", "picture", "scribble", "serious",
+      "tomorrow", "universe", "mountain", "whisper", "adventure",
+      "dinosaur", "elephant", "favorite", "hospital", "library"
+    ];
+    const BASE_WORD_SCORE = 1000;
+    const MISTAKE_MULTIPLIER = 50;
+
+    // Game Variables
+    let gameState = 'start'; // start, playing, gameover, won
+    let currentStep = 1;
+    let gameWords = [];
+    let totalScore = 0;
+    let wordPotentialScore = BASE_WORD_SCORE;
+    let isListeningMode = false;
+    let reviewData = { target: '', input: '' };
+
+    let wordStartTime = null;
+    let reviewStartTime = null;
+    let gameStats = [];
+    let currentWordMistakes = [];
+    let allScores = [];
+    let topScore = 0;
+
+    // Firebase Init
+    const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
+    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'skills-lab-standalone';
+    let auth, db, user;
+
+    try {
+      if (Object.keys(firebaseConfig).length > 0) {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        initAuth();
+      } else {
+        console.warn("Firebase config missing. Running game in offline/local mode.");
+      }
+    } catch (e) {
+      console.warn("Firebase initialization failed. Running game in offline/local mode.", e);
+    }
+
+    async function initAuth() {
+      if(!auth) return;
+      try {
+        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+          await signInWithCustomToken(auth, window.__initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+        onAuthStateChanged(auth, (u) => {
+          user = u;
+          if (user) loadScores();
+        });
+      } catch (err) {
+        console.error("Auth error:", err);
+      }
+    }
+
+    function loadScores() {
+      if(!db || !user) return;
+      const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+      const q = query(scoresRef);
+      onSnapshot(q, (snapshot) => {
+        let fetchedScores = [];
+        snapshot.forEach((doc) => {
+          fetchedScores.push({ id: doc.id, ...doc.data() });
+        });
+        fetchedScores.sort((a, b) => b.score - a.score);
+        allScores = fetchedScores;
+        if (fetchedScores.length > 0) {
+          topScore = fetchedScores[0].score;
+          document.getElementById('ui-high-score').innerText = topScore;
+        }
+        renderScoresList();
+      }, (err) => {
+        console.error("Firestore error:", err);
+      });
+    }
+
+    async function saveScore(finalScore) {
+      if (finalScore <= 0) return;
+      const newScore = {
+        score: finalScore,
+        date: new Date().toLocaleString(),
+        timestamp: Date.now(),
+        stats: gameStats
+      };
+      
+      // Save locally if no Firebase
+      if (!db || !user) {
+        allScores.push(newScore);
+        allScores.sort((a, b) => b.score - a.score);
+        if(allScores[0].score > topScore) {
+          topScore = allScores[0].score;
+          document.getElementById('ui-high-score').innerText = topScore;
+        }
+        renderScoresList();
+        return;
+      }
+      
+      try {
+        const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+        await addDoc(scoresRef, newScore);
+      } catch (err) {
+        console.error("Error saving score:", err);
+      }
+    }
+
+    // Initialize Icons on load
+    lucide.createIcons();
+
+    // Helper functions
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    function getLevenshteinDistance(a, b) {
+      const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
+      for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+      for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+      for (let j = 1; j <= b.length; j++) {
+        for (let i = 1; i <= a.length; i++) {
+          const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
+          matrix[j][i] = Math.min(
+            matrix[j][i - 1] + 1,
+            matrix[j - 1][i] + 1,
+            matrix[j - 1][i - 1] + indicator
+          );
+        }
+      }
+      return matrix[b.length][a.length];
+    }
+
+    function calculateLCS(target, input) {
+      const t = target.toLowerCase();
+      const p = input.toLowerCase();
+      const m = t.length;
+      const n = p.length;
+      
+      const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (t[i - 1] === p[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1] + 1;
+          } else {
+            dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+          }
+        }
+      }
+      
+      let i = m, j = n;
+      const matchedTargetIndices = new Set();
+      const matchedInputIndices = new Set();
+      
+      while (i > 0 && j > 0) {
+        if (t[i - 1] === p[j - 1]) {
+          matchedTargetIndices.add(i - 1);
+          matchedInputIndices.add(j - 1);
+          i--;
+          j--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+          i--;
+        } else {
+          j--;
+        }
+      }
+      
+      return { matchedTargetIndices, matchedInputIndices };
+    }
+
+    // UI and Interaction Functions
+    window.startGame = function() {
+      const shuffled = shuffleArray(LADDER_WORDS);
+      gameWords = shuffled.slice(0, 10);
+      gameState = 'playing';
+      currentStep = 1;
+      totalScore = 0;
+      gameStats = [];
+      
+      document.getElementById('ui-total-score').innerText = totalScore;
+      resetWordState();
+      switchScreen('screen-playing');
+      renderLadder();
+      document.getElementById('ladder-sidebar').classList.remove('hidden');
+    }
+
+    function resetWordState() {
+      wordPotentialScore = BASE_WORD_SCORE;
+      isListeningMode = false;
+      wordStartTime = null;
+      reviewStartTime = null;
+      currentWordMistakes = [];
+      
+      const inputEl = document.getElementById('input-word');
+      inputEl.value = '';
+      inputEl.disabled = true;
+      inputEl.placeholder = "Click 'Listen' to start!";
+      
+      document.getElementById('btn-submit').disabled = true;
+      document.getElementById('txt-listen').innerText = 'Listen';
+      document.getElementById('ui-info-box').classList.remove('hidden');
+      
+      const feedbackEl = document.getElementById('ui-feedback');
+      feedbackEl.classList.add('hidden');
+      
+      updateWordPotentialUI();
+    }
+
+    window.playWord = function() {
+      const targetWord = gameWords[currentStep - 1];
+      if (!targetWord) return;
+      
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(targetWord);
+      utterance.rate = 0.8;
+      window.speechSynthesis.speak(utterance);
+
+      if (!wordStartTime) {
+        wordStartTime = Date.now();
+        isListeningMode = true;
+        
+        const inputEl = document.getElementById('input-word');
+        inputEl.disabled = false;
+        inputEl.placeholder = "Type the word here...";
+        document.getElementById('btn-submit').disabled = false;
+        document.getElementById('txt-listen').innerText = 'Listen Again';
+        document.getElementById('ui-info-box').classList.add('hidden');
+        
+        setTimeout(() => inputEl.focus(), 100);
+      }
+    }
+
+    window.handleSubmit = function(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('input-word');
+      const inputValue = inputEl.value.trim();
+      
+      if (!isListeningMode || !inputValue) return;
+
+      const targetWord = gameWords[currentStep - 1];
+      if (!targetWord) return;
+
+      const normalizedInput = inputValue.toLowerCase();
+      const normalizedTarget = targetWord.toLowerCase();
+
+      if (normalizedInput === normalizedTarget) {
+        // Correct
+        isListeningMode = false;
+        inputEl.disabled = true;
+        document.getElementById('btn-submit').disabled = true;
+        
+        const timeTakenSeconds = (Date.now() - wordStartTime) / 1000;
+        const gracePeriod = 2.5;
+        const penaltyTime = Math.max(0, timeTakenSeconds - gracePeriod);
+        const timePenalty = Math.floor(penaltyTime * 35);
+        const finalWordScore = Math.max(10, wordPotentialScore - timePenalty);
+        
+        gameStats.push({
+          word: targetWord,
+          timeTaken: timeTakenSeconds.toFixed(2) + 's',
+          mistakes: [...currentWordMistakes],
+          pointsEarned: finalWordScore
+        });
+
+        totalScore += finalWordScore;
+        document.getElementById('ui-total-score').innerText = totalScore;
+        
+        showFeedback(`Correct! +${finalWordScore} points`, true);
+
+        if (currentStep >= gameWords.length) {
+          saveScore(totalScore);
+          setTimeout(() => showEndScreen(true), 1500);
+        } else {
+          setTimeout(() => {
+            currentStep++;
+            renderLadder();
+            resetWordState();
+          }, 1500);
+        }
+      } else {
+        // Incorrect
+        const distance = getLevenshteinDistance(normalizedTarget, normalizedInput);
+        const penalty = distance * MISTAKE_MULTIPLIER;
+        wordPotentialScore -= penalty;
+
+        currentWordMistakes.push({ input: inputValue, penalty: penalty });
+
+        if (wordPotentialScore <= 0) {
+          wordPotentialScore = 0;
+          updateWordPotentialUI();
+          saveScore(totalScore);
+          showEndScreen(false);
+        } else {
+          updateWordPotentialUI();
+          showFeedback(`Oops! You lost ${penalty} points. Review your spelling!`, false);
+          
+          // Show review modal
+          reviewData = { target: targetWord, input: inputValue };
+          renderReviewModal();
+          document.getElementById('modal-review').classList.remove('hidden');
+          reviewStartTime = Date.now();
+        }
+      }
+    }
+
+    window.closeReviewModal = function() {
+      if (reviewStartTime) {
+        const reviewDuration = Date.now() - reviewStartTime;
+        wordStartTime += (reviewDuration * 0.5);
+        reviewStartTime = null;
+      }
+      document.getElementById('modal-review').classList.add('hidden');
+      const inputEl = document.getElementById('input-word');
+      inputEl.value = '';
+      inputEl.focus();
+    }
+
+    // UI Render Helpers
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen-section').forEach(el => el.classList.add('hidden'));
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function updateWordPotentialUI() {
+      const el = document.getElementById('ui-word-potential');
+      el.innerHTML = `${wordPotentialScore} <span class="text-sm text-slate-400">pts</span>`;
+      el.className = `text-3xl font-black ${wordPotentialScore > 500 ? 'text-green-500' : 'text-orange-500'}`;
+    }
+
+    function showFeedback(text, isCorrect) {
+      const el = document.getElementById('ui-feedback');
+      el.innerText = text;
+      el.className = `text-center font-bold text-lg animate-bounce ${isCorrect ? 'text-green-500' : 'text-orange-500'}`;
+      el.classList.remove('hidden');
+    }
+
+    function renderLadder() {
+      const container = document.getElementById('ladder-container');
+      // Keep the background line
+      let html = `<div class="absolute left-1/2 top-4 bottom-4 w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>`;
+      
+      for (let i = 0; i < 10; i++) {
+        const stepNum = i + 1;
+        const isCompleted = stepNum < currentStep;
+        const isActive = stepNum === currentStep;
+        
+        let classes = 'bg-slate-200 border-white text-slate-400';
+        if (isActive) classes = 'bg-blue-500 border-blue-200 text-white scale-125 shadow-lg shadow-blue-500/40';
+        else if (isCompleted) classes = 'bg-green-400 border-white text-white';
+        
+        const content = isCompleted ? `<i data-lucide="check" class="w-5 h-5 stroke-[3]"></i>` : stepNum;
+        
+        html += `
+          <div class="relative z-10 flex justify-center">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-4 transition-all duration-500 ${classes}">
+              ${content}
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function showEndScreen(won) {
+      document.getElementById('ladder-sidebar').classList.add('hidden');
+      switchScreen('screen-end');
+      
+      const iconBox = document.getElementById('end-icon-box');
+      const icon = document.getElementById('end-icon');
+      const title = document.getElementById('end-title');
+      const message = document.getElementById('end-message');
+      
+      if (won) {
+        iconBox.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-green-100 text-green-500";
+        icon.setAttribute('data-lucide', 'trophy');
+        title.innerText = "Amazing Job!";
+        message.innerText = "You completed the entire ladder!";
+      } else {
+        iconBox.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-red-100 text-red-500";
+        icon.setAttribute('data-lucide', 'x');
+        title.innerText = "Game Over";
+        message.innerText = "You lost all your potential points for that word. Keep practicing!";
+      }
+      document.getElementById('ui-final-score').innerText = totalScore;
+      lucide.createIcons();
+    }
+
+    function renderReviewModal() {
+      const { matchedTargetIndices, matchedInputIndices } = calculateLCS(reviewData.target, reviewData.input);
+      
+      const targetContainer = document.getElementById('review-target');
+      let targetHtml = '';
+      reviewData.target.split('').forEach((letter, i) => {
+        const isMatch = matchedTargetIndices.has(i);
+        const classes = isMatch 
+          ? 'bg-green-100 text-green-700 border-green-300 shadow-sm' 
+          : 'bg-yellow-300 text-yellow-900 border-yellow-500 shadow-[0_0_15px_rgba(250,204,21,0.8)] scale-110 animate-pulse z-10';
+        
+        targetHtml += `<div class="w-10 h-12 sm:w-12 sm:h-14 border-b-4 rounded-xl flex items-center justify-center text-2xl font-black uppercase transition-all duration-300 ${classes}">${letter}</div>`;
+      });
+      targetContainer.innerHTML = targetHtml;
+
+      const inputContainer = document.getElementById('review-input');
+      let inputHtml = '';
+      reviewData.input.split('').forEach((letter, i) => {
+        const isCorrect = matchedInputIndices.has(i);
+        const classes = isCorrect 
+          ? 'bg-green-50 text-green-600 border-green-200' 
+          : 'bg-red-100 text-red-600 border-red-300';
+          
+        inputHtml += `<div class="w-10 h-12 sm:w-12 sm:h-14 border-b-4 rounded-xl flex items-center justify-center text-2xl font-black uppercase shadow-sm ${classes}">${letter}</div>`;
+      });
+      inputContainer.innerHTML = inputHtml;
+    }
+
+    window.toggleScoresModal = function(show) {
+      if (show) {
+        renderScoresList();
+        document.getElementById('modal-scores').classList.remove('hidden');
+      } else {
+        document.getElementById('modal-scores').classList.add('hidden');
+      }
+    }
+
+    function renderScoresList() {
+      const container = document.getElementById('scores-list');
+      if (allScores.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-slate-400 font-medium">No scores recorded yet. Play a game to see your history!</div>';
+        return;
+      }
+      
+      let html = '';
+      allScores.forEach(record => {
+        html += `
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center hover:border-indigo-200 transition-colors">
+            <div class="flex flex-col">
+              <span class="text-sm text-slate-400 font-medium">${record.date}</span>
+            </div>
+            <div class="font-black text-xl text-indigo-600">
+              ${record.score} <span class="text-xs text-indigo-400">pts</span>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    window.downloadReport = function() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allScores, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "skills_lab_report.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
+  </script>
+</body>
+</html>
