@@ -13,6 +13,9 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -37,12 +40,19 @@
         transform: translateY(0);
       }
     }
+    .bounce-in {
+      animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes bounceIn {
+      0% { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
     .hidden {
       display: none !important;
     }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 font-sans text-slate-800 flex flex-col m-0 p-0">
+<body id="app-body" class="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 font-sans text-slate-800 flex flex-col m-0 p-0 transition-colors duration-1000">
 
   <!-- Top Navigation Bar -->
   <header class="bg-white shadow-md p-4 flex justify-between items-center rounded-b-3xl relative z-10">
@@ -77,11 +87,11 @@
   <div class="flex-1 flex w-full max-w-7xl mx-auto p-4 gap-4 sm:gap-8 relative overflow-hidden">
     
     <!-- Progress Sidebar - Left -->
-    <aside id="ladder-sidebar" class="hidden md:flex flex-col w-24 bg-white/60 backdrop-blur-md rounded-3xl shadow-lg p-4 justify-between h-[600px] my-auto animate-fade-in-up">
-      <h3 class="text-center font-black text-slate-500 uppercase tracking-widest text-xs mb-2">Ladder</h3>
+    <aside id="ladder-sidebar" class="hidden md:flex flex-col w-20 sm:w-24 bg-white/60 backdrop-blur-md rounded-3xl shadow-lg p-2 sm:p-4 justify-between h-[65vh] min-h-[350px] max-h-[500px] my-auto animate-fade-in-up flex-shrink-0">
+      <h3 class="text-center font-black text-slate-500 uppercase tracking-widest text-[10px] sm:text-xs mb-1 sm:mb-2">Ladder</h3>
       <div class="flex flex-col-reverse justify-between h-full w-full py-2 relative" id="ladder-container">
         <!-- Background Line -->
-        <div class="absolute left-1/2 top-4 bottom-4 w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>
+        <div class="absolute left-1/2 top-4 bottom-4 w-1.5 sm:w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>
         <!-- Steps will be generated dynamically -->
       </div>
     </aside>
@@ -104,8 +114,19 @@
       </div>
 
       <!-- PLAYING SCREEN -->
-      <div id="screen-playing" class="hidden w-full max-w-2xl bg-white p-6 sm:p-10 rounded-3xl shadow-xl flex flex-col relative animate-fade-in-up screen-section">
-        <div class="flex justify-between items-center w-full mb-8 mt-4">
+      <div id="screen-playing" class="hidden w-full max-w-4xl bg-white p-4 sm:p-8 rounded-3xl shadow-xl flex flex-col relative animate-fade-in-up screen-section transition-colors duration-1000">
+        
+        <!-- ADELINE'S PET RESCUE MINIGAME -->
+        <div id="adeline-pet-rescue" class="hidden w-full bg-pink-50 p-3 sm:p-4 rounded-2xl border-2 border-pink-200 mb-4 flex flex-col items-center shadow-sm">
+            <h3 class="text-pink-500 font-black uppercase tracking-widest text-xs sm:text-sm mb-2 flex items-center gap-2">
+                <i data-lucide="heart" class="w-4 h-4 fill-current text-pink-400"></i> Rescue the Pets! <i data-lucide="heart" class="w-4 h-4 fill-current text-pink-400"></i>
+            </h3>
+            <div class="w-full flex justify-center gap-2 sm:gap-3 flex-wrap" id="pet-rescue-track">
+                <!-- Pet bubbles injected here -->
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center w-full mb-4 mt-2">
           <div class="flex flex-col">
             <span class="text-xs uppercase font-black text-slate-400 tracking-widest">Word Potential</span>
             <span id="ui-word-potential" class="text-3xl font-black text-green-500">
@@ -114,19 +135,19 @@
           </div>
         </div>
 
-        <div class="flex flex-col items-center gap-8 my-8">
-          <button id="btn-listen" onclick="playWord()" class="w-32 h-32 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex flex-col items-center justify-center shadow-inner transition-colors active:scale-95">
-            <i data-lucide="volume-2" class="w-12 h-12 mb-2"></i>
-            <span id="txt-listen" class="font-bold">Listen</span>
+        <div class="flex flex-col md:flex-row items-center justify-center gap-6 my-4 w-full">
+          <button id="btn-listen" onclick="playWord()" class="w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex flex-col items-center justify-center shadow-inner transition-colors active:scale-95">
+            <i data-lucide="volume-2" class="w-8 h-8 sm:w-10 sm:h-10 mb-1"></i>
+            <span id="txt-listen" class="font-bold text-sm sm:text-base">Listen</span>
           </button>
 
-          <form id="word-form" onsubmit="handleSubmit(event)" class="w-full flex flex-col gap-4">
+          <form id="word-form" onsubmit="handleSubmit(event)" class="w-full max-w-md flex flex-col gap-3">
             <input
               id="input-word"
               type="text"
               disabled
               placeholder="Click 'Listen' to start!"
-              class="w-full text-center text-3xl font-bold py-4 px-6 border-4 border-slate-100 rounded-2xl focus:outline-none focus:border-blue-400 transition-colors disabled:bg-slate-50 disabled:opacity-75"
+              class="w-full text-center text-2xl sm:text-3xl font-bold py-3 px-6 border-4 border-slate-100 rounded-2xl focus:outline-none focus:border-blue-400 transition-colors disabled:bg-slate-50 disabled:opacity-75"
               autocomplete="off"
               autocorrect="off"
               spellcheck="false"
@@ -138,21 +159,31 @@
               id="btn-submit"
               type="submit"
               disabled
-              class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all text-xl"
+              class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-2xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all text-xl"
             >
               Submit Word
             </button>
           </form>
         </div>
         
-        <div id="ui-info-box" class="flex items-start gap-2 bg-blue-50 text-blue-800 p-4 rounded-xl text-sm font-medium">
+        <div id="ui-info-box" class="flex items-start gap-2 bg-blue-50 text-blue-800 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-medium w-full max-w-2xl mx-auto">
           <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
           <p>Clicking <strong>Listen</strong> starts a hidden timer. Faster, accurate typing earns more points! Mistakes reduce the word's potential score.</p>
         </div>
 
-        <div id="adeline-hint-box" class="hidden flex items-start gap-3 bg-pink-50 text-pink-800 p-5 rounded-xl text-lg sm:text-xl font-medium mt-4 border-2 border-pink-200 shadow-sm">
-          <i data-lucide="lightbulb" class="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 text-pink-500 mt-1"></i>
+        <div id="adeline-hint-box" class="hidden flex items-start gap-3 bg-pink-50 text-pink-800 p-4 rounded-xl text-base sm:text-lg font-medium mt-3 border-2 border-pink-200 shadow-sm w-full max-w-2xl mx-auto">
+          <i data-lucide="lightbulb" class="w-6 h-6 flex-shrink-0 text-pink-500 mt-0.5"></i>
           <p><strong>[aw]</strong> at the end, or before n, k, l. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>[au]</strong> everywhere else</p>
+        </div>
+
+        <div id="william-hint-box" class="hidden flex items-start gap-3 bg-blue-50 text-blue-800 p-4 rounded-xl text-sm sm:text-base font-medium mt-3 border-2 border-blue-200 shadow-sm w-full max-w-2xl mx-auto text-left">
+          <i data-lucide="book-open" class="w-6 h-6 flex-shrink-0 text-blue-500 mt-1"></i>
+          <div class="flex flex-col gap-2 w-full">
+            <div><strong>Beginning:</strong><br>C- before A, O, U (or any consonant)<br>K- before E, I, Y</div>
+            <div><strong>Middle:</strong><br>-ck- after a short vowel<br>-c- after long vowel AND followed by A, O, U or before a consonant<br>-k- before E, I, Y</div>
+            <div><strong>End:</strong><br>-ck after a short vowel, or in a compound word<br>-k after a long vowel, vowel team, or consonants<br>-c at the end of multi-syllable words (except compound words)</div>
+            <div class="text-blue-600 font-black mt-1">C becomes soft when followed by E, I, Y</div>
+          </div>
         </div>
       </div>
 
@@ -284,10 +315,10 @@
   <!-- Main Game Logic -->
   <script>
     const WILLIAM_WORDS = [
-      "because", "guitar", "people", "penguin", "curious",
-      "astronaut", "business", "picture", "scribble", "serious",
-      "tomorrow", "universe", "mountain", "whisper", "adventure",
-      "dinosaur", "elephant", "favorite", "hospital", "library"
+      "kitchen", "kidney", "kettle", "kingdom", "camera", "college", "custom", "clever", 
+      "cabinet", "shock", "blank", "stuck", "trick", "clank", "shake", "plastic", 
+      "topic", "fabric", "picnic", "public", "attic", "magic", "clinic", "ticket", 
+      "cricket", "flicker", "bacon", "focus", "action", "active", "record", "picture", "doctor"
     ];
     
     const ADELINE_WORDS = [
@@ -297,6 +328,27 @@
 
     const BASE_WORD_SCORE = 1000;
     const MISTAKE_MULTIPLIER = 50;
+
+    const BG_THEMES = [
+      'from-blue-100 to-purple-100',
+      'from-pink-100 to-rose-200',
+      'from-green-100 to-teal-100',
+      'from-yellow-100 to-orange-100',
+      'from-purple-100 to-pink-100',
+      'from-indigo-100 to-cyan-100'
+    ];
+    
+    const BOX_THEMES = [
+      'bg-white',
+      'bg-pink-50',
+      'bg-green-50',
+      'bg-yellow-50',
+      'bg-purple-50',
+      'bg-indigo-50'
+    ];
+    let currentBgIndex = 0;
+    
+    const CUTE_PETS = ['🐶', '🐱', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦄', '🦋', '🐢', '🦖', '🐙'];
 
     let currentUser = "";
     let LADDER_WORDS = [];
@@ -314,6 +366,7 @@
     let currentWordMistakes = [];
     let allScores = [];
     let topScore = 0;
+    let currentSessionPets = [];
     
     if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
@@ -385,10 +438,29 @@
       
       const uiUserElement = document.getElementById('ui-current-user');
       const uiUserName = document.getElementById('ui-current-user-name');
+      
       if (uiUserName) uiUserName.innerText = `Playing as: ${name}`;
-      uiUserElement.classList.remove('hidden');
+      if (uiUserElement) uiUserElement.classList.remove('hidden');
       
       document.getElementById('start-user-badge').innerText = `Ready to play, ${name}!`;
+      
+      // Wipe mid-game session state and return to start menu
+      gameState = 'start';
+      totalScore = 0;
+      document.getElementById('ui-total-score').innerText = totalScore;
+      
+      const body = document.getElementById('app-body');
+      const playScreen = document.getElementById('screen-playing');
+      body.className = body.className.replace(/from-\w+-\d+\sto-\w+-\d+/, BG_THEMES[0]);
+      playScreen.className = playScreen.className.replace(/bg-\w+-\d+|bg-white/, BOX_THEMES[0]);
+      currentBgIndex = 0;
+      
+      document.getElementById('adeline-hint-box').classList.add('hidden');
+      document.getElementById('william-hint-box').classList.add('hidden');
+      document.getElementById('adeline-pet-rescue').classList.add('hidden');
+      document.getElementById('ladder-sidebar').classList.add('hidden');
+      
+      switchScreen('screen-start');
       
       loadScores();
     }
@@ -407,16 +479,34 @@
       
       document.getElementById('ui-total-score').innerText = totalScore;
       
+      // Reset background and box theme
+      const body = document.getElementById('app-body');
+      const playScreen = document.getElementById('screen-playing');
+      body.className = body.className.replace(/from-\w+-\d+\sto-\w+-\d+/, BG_THEMES[0]);
+      playScreen.className = playScreen.className.replace(/bg-\w+-\d+|bg-white/, BOX_THEMES[0]);
+      currentBgIndex = 0;
+      
       if (currentUser === 'Adeline') {
         document.getElementById('adeline-hint-box').classList.remove('hidden');
+        document.getElementById('william-hint-box').classList.add('hidden');
+        document.getElementById('adeline-pet-rescue').classList.remove('hidden');
+        document.getElementById('ladder-sidebar').classList.add('hidden');
+        currentSessionPets = shuffleArray(CUTE_PETS).slice(0, gameWords.length);
       } else {
         document.getElementById('adeline-hint-box').classList.add('hidden');
+        document.getElementById('william-hint-box').classList.remove('hidden');
+        document.getElementById('adeline-pet-rescue').classList.add('hidden');
+        document.getElementById('ladder-sidebar').classList.remove('hidden');
       }
 
       resetWordState();
       switchScreen('screen-playing');
-      renderLadder();
-      document.getElementById('ladder-sidebar').classList.remove('hidden');
+      
+      if (currentUser === 'Adeline') {
+        renderAdelineProgress();
+      } else {
+        renderLadder();
+      }
     }
 
     function resetWordState() {
@@ -446,14 +536,27 @@
       if (!targetWord) return;
       
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(targetWord);
+      
+      // Adding a period forces the voice to enunciate clearly with a downward, finished inflection.
+      const utterance = new SpeechSynthesisUtterance(targetWord + ".");
       utterance.lang = 'en-CA';
-      utterance.rate = 0.35;
-      utterance.pitch = 1.1;
+      
+      // Extremely slow rates stretch the audio and distort consonants (k -> g). 
+      // 0.75 preserves crisp consonants while still being slower than normal.
+      utterance.rate = 0.75;
+      utterance.pitch = 1.0;
       
       const voices = window.speechSynthesis.getVoices();
-      const caVoice = voices.find(v => v.lang === 'en-CA' || v.name.includes('Canada') || v.name.includes('Linda') || v.name.includes('Heather'));
-      if (caVoice) utterance.voice = caVoice;
+      
+      // Prioritize high-quality/enhanced voices first for better enunciation
+      let selectedVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Enhanced') || v.name.includes('Premium') || v.name.includes('Google')));
+      
+      // Fallback to standard Canadian if no premium voice is found
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang === 'en-CA' || v.name.includes('Canada') || v.name.includes('Linda') || v.name.includes('Heather'));
+      }
+      
+      if (selectedVoice) utterance.voice = selectedVoice;
 
       window.speechSynthesis.speak(utterance);
 
@@ -509,12 +612,55 @@
         showFeedback(`Correct! +${finalWordScore} points`, true);
 
         if (currentStep >= gameWords.length) {
+          if (currentUser === 'Adeline') {
+              currentStep++;
+              renderAdelineProgress();
+              if (typeof confetti !== 'undefined') {
+                confetti({
+                  particleCount: 100,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                  colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA', '#98FB98'],
+                  zIndex: 1000
+                });
+              }
+          }
           saveScore(totalScore);
           setTimeout(() => showEndScreen(true), 1500);
         } else {
+          currentStep++;
+          
+          if (currentUser === 'Adeline') {
+             renderAdelineProgress();
+             
+             // Change color theme!
+             const body = document.getElementById('app-body');
+             const playScreen = document.getElementById('screen-playing');
+             const oldTheme = BG_THEMES[currentBgIndex];
+             const oldBoxTheme = BOX_THEMES[currentBgIndex];
+             
+             currentBgIndex = (currentBgIndex + 1) % BG_THEMES.length;
+             
+             const newTheme = BG_THEMES[currentBgIndex];
+             const newBoxTheme = BOX_THEMES[currentBgIndex];
+             
+             body.className = body.className.replace(oldTheme, newTheme);
+             playScreen.className = playScreen.className.replace(oldBoxTheme, newBoxTheme);
+             
+             if (typeof confetti !== 'undefined') {
+               confetti({
+                 particleCount: 50,
+                 spread: 50,
+                 origin: { y: 0.6 },
+                 colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA', '#98FB98'],
+                 zIndex: 1000
+               });
+             }
+          } else {
+             renderLadder();
+          }
+
           setTimeout(() => {
-            currentStep++;
-            renderLadder();
             resetWordState();
           }, 1500);
         }
@@ -637,7 +783,8 @@
 
     function renderLadder() {
       const container = document.getElementById('ladder-container');
-      let html = `<div class="absolute left-1/2 top-4 bottom-4 w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>`;
+      // Keep the background line
+      let html = `<div class="absolute left-1/2 top-4 bottom-4 w-1.5 sm:w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>`;
       
       for (let i = 0; i < gameWords.length; i++) {
         const stepNum = i + 1;
@@ -648,11 +795,11 @@
         if (isActive) classes = 'bg-blue-500 border-blue-200 text-white scale-125 shadow-lg shadow-blue-500/40';
         else if (isCompleted) classes = 'bg-green-400 border-white text-white';
         
-        const content = isCompleted ? `<i data-lucide="check" class="w-5 h-5 stroke-[3]"></i>` : stepNum;
+        const content = isCompleted ? `<i data-lucide="check" class="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]"></i>` : stepNum;
         
         html += `
           <div class="relative z-10 flex justify-center">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-4 transition-all duration-500 ${classes}">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black text-xs sm:text-sm border-[3px] sm:border-4 transition-all duration-500 ${classes}">
               ${content}
             </div>
           </div>
@@ -662,9 +809,40 @@
       lucide.createIcons();
     }
 
+    function renderAdelineProgress() {
+      const track = document.getElementById('pet-rescue-track');
+      if (!track) return;
+      let html = '';
+      for (let i = 0; i < gameWords.length; i++) {
+        const isCompleted = i < currentStep - 1;
+        const isActive = i === currentStep - 1;
+        const pet = currentSessionPets ? currentSessionPets[i] : '🐶';
+
+        if (isCompleted) {
+          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-white border-4 border-green-300 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-md transform hover:scale-110 transition-transform bounce-in">${pet}</div>`;
+        } else if (isActive) {
+          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 border-4 border-pink-400 border-dashed rounded-full flex items-center justify-center text-lg sm:text-xl shadow-inner animate-pulse">✨</div>`;
+        } else {
+          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 border-4 border-slate-200 rounded-full flex items-center justify-center text-base sm:text-lg shadow-inner opacity-50 text-slate-400">🔒</div>`;
+        }
+      }
+      track.innerHTML = html;
+      lucide.createIcons();
+    }
+
     function showEndScreen(won) {
       document.getElementById('ladder-sidebar').classList.add('hidden');
       switchScreen('screen-end');
+      
+      if (won && currentUser === 'Adeline' && typeof confetti !== 'undefined') {
+        const duration = 3000;
+        const end = Date.now() + duration;
+        (function frame() {
+          confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA'], zIndex: 1000 });
+          confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA'], zIndex: 1000 });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+      }
       
       const iconBox = document.getElementById('end-icon-box');
       const icon = document.getElementById('end-icon');
