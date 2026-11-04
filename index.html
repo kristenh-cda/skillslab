@@ -45,12 +45,18 @@
 <body class="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 font-sans text-slate-800 flex flex-col m-0 p-0">
 
   <!-- Top Navigation Bar -->
-  <header class="bg-white shadow-md p-4 flex justify-between items-center rounded-b-3xl">
-    <div class="flex items-center gap-2">
-      <i data-lucide="trophy" class="text-yellow-500 w-6 h-6 sm:w-8 sm:h-8"></i>
-      <div class="flex flex-col">
-        <span class="text-xs sm:text-sm text-slate-500 font-semibold uppercase tracking-wider">High Score</span>
-        <span id="ui-high-score" class="text-lg sm:text-2xl font-black text-slate-700">0</span>
+  <header class="bg-white shadow-md p-4 flex justify-between items-center rounded-b-3xl relative z-10">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <i data-lucide="trophy" class="text-yellow-500 w-6 h-6 sm:w-8 sm:h-8"></i>
+        <div class="flex flex-col">
+          <span class="text-xs sm:text-sm text-slate-500 font-semibold uppercase tracking-wider">High Score</span>
+          <span id="ui-high-score" class="text-lg sm:text-2xl font-black text-slate-700">0</span>
+        </div>
+      </div>
+      <div id="ui-current-user" class="hidden sm:flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+        <span id="ui-current-user-name">Playing as: -</span>
+        <button onclick="showUserSelect()" class="bg-indigo-200 hover:bg-indigo-300 text-indigo-800 px-2 py-0.5 rounded text-xs transition-colors shadow-sm active:scale-95" title="Change User">Change</button>
       </div>
     </div>
     
@@ -85,9 +91,10 @@
       
       <!-- START SCREEN -->
       <div id="screen-start" class="bg-white p-8 sm:p-12 rounded-3xl shadow-xl max-w-lg w-full text-center transform transition-all animate-fade-in-up screen-section">
-        <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <i data-lucide="star" class="w-12 h-12 text-blue-500"></i>
         </div>
+        <div id="start-user-badge" class="mb-4 text-indigo-600 font-bold bg-indigo-50 px-4 py-1 rounded-full inline-block text-sm"></div>
         <h1 class="text-4xl font-black text-slate-800 mb-4">Skills Lab</h1>
         <p class="text-slate-500 font-medium mb-8">Climb the spelling ladder! Listen to the word, type it accurately, and do it fast for maximum points.</p>
         <button onclick="startGame()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-blue-500/30 transform transition-all active:scale-95 flex items-center justify-center gap-3 text-xl">
@@ -142,6 +149,11 @@
           <i data-lucide="info" class="w-5 h-5 flex-shrink-0"></i>
           <p>Clicking <strong>Listen</strong> starts a hidden timer. Faster, accurate typing earns more points! Mistakes reduce the word's potential score.</p>
         </div>
+
+        <div id="adeline-hint-box" class="hidden flex items-start gap-3 bg-pink-50 text-pink-800 p-5 rounded-xl text-lg sm:text-xl font-medium mt-4 border-2 border-pink-200 shadow-sm">
+          <i data-lucide="lightbulb" class="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 text-pink-500 mt-1"></i>
+          <p><strong>[aw]</strong> at the end, or before n, k, l. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>[au]</strong> everywhere else</p>
+        </div>
       </div>
 
       <!-- GAME OVER / WON SCREEN -->
@@ -164,6 +176,22 @@
       </div>
 
     </main>
+  </div>
+
+  <!-- User Selection Modal -->
+  <div id="modal-user-select" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-fade-in-up">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col p-8 text-center">
+      <h2 class="text-3xl font-black text-slate-800 mb-2">Welcome!</h2>
+      <p class="text-slate-500 mb-8 font-medium">Who is playing today?</p>
+      <div class="flex flex-col gap-4">
+        <button onclick="selectUser('Adeline')" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-4 rounded-2xl text-xl shadow-lg transition-transform active:scale-95">
+          Adeline
+        </button>
+        <button onclick="selectUser('William')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-2xl text-xl shadow-lg transition-transform active:scale-95">
+          William
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Scores Modal -->
@@ -220,25 +248,59 @@
     </div>
   </div>
 
-  <!-- Main Game Logic -->
+  <!-- Firebase Cloud Sync (Isolated Module) -->
   <script type="module">
-    // Firebase Modular SDK Imports
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
     import { getFirestore, collection, addDoc, onSnapshot, query } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-    // Game Constants
-    const LADDER_WORDS = [
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCzz-Z6pNp1Qf6sY3p_3_V9kiAsj-8oc8",
+      authDomain: "speech-skills-lab.firebaseapp.com",
+      projectId: "speech-skills-lab",
+      storageBucket: "speech-skills-lab.firebasestorage.app",
+      messagingSenderId: "153085829377",
+      appId: "1:153085829377:web:808f7f4f170043ffb13b00",
+      measurementId: "G-LW19Y92GKE"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      
+      window.db = db;
+      window.firebaseCollection = collection;
+      window.firebaseAddDoc = addDoc;
+      window.firebaseOnSnapshot = onSnapshot;
+      window.firebaseQuery = query;
+      
+      if (typeof window.triggerCloudLoad === 'function') {
+        window.triggerCloudLoad();
+      }
+    } catch (e) {
+      console.warn("Firebase initialization skipped. Running in offline/local mode.", e);
+    }
+  </script>
+
+  <!-- Main Game Logic -->
+  <script>
+    const WILLIAM_WORDS = [
       "because", "guitar", "people", "penguin", "curious",
       "astronaut", "business", "picture", "scribble", "serious",
       "tomorrow", "universe", "mountain", "whisper", "adventure",
       "dinosaur", "elephant", "favorite", "hospital", "library"
     ];
+    
+    const ADELINE_WORDS = [
+      "saw", "jaw", "draw", "claw", "lawn", "yawn", "hawk", 
+      "crawl", "launch", "fault", "haunt", "cause", "pause"
+    ];
+
     const BASE_WORD_SCORE = 1000;
     const MISTAKE_MULTIPLIER = 50;
 
-    // Game Variables
-    let gameState = 'start'; // start, playing, gameover, won
+    let currentUser = "";
+    let LADDER_WORDS = [];
+    let gameState = 'start';
     let currentStep = 1;
     let gameWords = [];
     let totalScore = 0;
@@ -252,53 +314,26 @@
     let currentWordMistakes = [];
     let allScores = [];
     let topScore = 0;
-
-    // Firebase Init
-    const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
-    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'skills-lab-standalone';
-    let auth, db, user;
-
-    try {
-      if (Object.keys(firebaseConfig).length > 0) {
-        const app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        initAuth();
-      } else {
-        console.warn("Firebase config missing. Running game in offline/local mode.");
-      }
-    } catch (e) {
-      console.warn("Firebase initialization failed. Running game in offline/local mode.", e);
-    }
-
-    async function initAuth() {
-      if(!auth) return;
-      try {
-        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-          await signInWithCustomToken(auth, window.__initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-        onAuthStateChanged(auth, (u) => {
-          user = u;
-          if (user) loadScores();
-        });
-      } catch (err) {
-        console.error("Auth error:", err);
-      }
+    
+    if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
 
     function loadScores() {
-      if(!db || !user) return;
-      const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-      const q = query(scoresRef);
-      onSnapshot(q, (snapshot) => {
+      if(!window.db || !window.firebaseCollection) return;
+      
+      const scoresRef = window.firebaseCollection(window.db, 'scores');
+      const q = window.firebaseQuery(scoresRef);
+      window.firebaseOnSnapshot(q, (snapshot) => {
         let fetchedScores = [];
         snapshot.forEach((doc) => {
           fetchedScores.push({ id: doc.id, ...doc.data() });
         });
+        
         fetchedScores.sort((a, b) => b.score - a.score);
         allScores = fetchedScores;
+        
         if (fetchedScores.length > 0) {
           topScore = fetchedScores[0].score;
           document.getElementById('ui-high-score').innerText = topScore;
@@ -309,17 +344,19 @@
       });
     }
 
+    window.triggerCloudLoad = loadScores;
+
     async function saveScore(finalScore) {
-      if (finalScore <= 0) return;
+      if (finalScore <= 0 || !currentUser) return;
       const newScore = {
+        user: currentUser,
         score: finalScore,
         date: new Date().toLocaleString(),
         timestamp: Date.now(),
         stats: gameStats
       };
       
-      // Save locally if no Firebase
-      if (!db || !user) {
+      if (!window.db) {
         allScores.push(newScore);
         allScores.sort((a, b) => b.score - a.score);
         if(allScores[0].score > topScore) {
@@ -331,17 +368,192 @@
       }
       
       try {
-        const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-        await addDoc(scoresRef, newScore);
+        const scoresRef = window.firebaseCollection(window.db, 'scores');
+        await window.firebaseAddDoc(scoresRef, newScore);
       } catch (err) {
         console.error("Error saving score:", err);
       }
     }
 
-    // Initialize Icons on load
     lucide.createIcons();
 
-    // Helper functions
+    function selectUser(name) {
+      currentUser = name;
+      LADDER_WORDS = name === 'Adeline' ? ADELINE_WORDS : WILLIAM_WORDS;
+      
+      document.getElementById('modal-user-select').classList.add('hidden');
+      
+      const uiUserElement = document.getElementById('ui-current-user');
+      const uiUserName = document.getElementById('ui-current-user-name');
+      if (uiUserName) uiUserName.innerText = `Playing as: ${name}`;
+      uiUserElement.classList.remove('hidden');
+      
+      document.getElementById('start-user-badge').innerText = `Ready to play, ${name}!`;
+      
+      loadScores();
+    }
+
+    function showUserSelect() {
+      document.getElementById('modal-user-select').classList.remove('hidden');
+    }
+
+    function startGame() {
+      const shuffled = shuffleArray(LADDER_WORDS);
+      gameWords = shuffled.slice(0, Math.min(10, LADDER_WORDS.length));
+      gameState = 'playing';
+      currentStep = 1;
+      totalScore = 0;
+      gameStats = [];
+      
+      document.getElementById('ui-total-score').innerText = totalScore;
+      
+      if (currentUser === 'Adeline') {
+        document.getElementById('adeline-hint-box').classList.remove('hidden');
+      } else {
+        document.getElementById('adeline-hint-box').classList.add('hidden');
+      }
+
+      resetWordState();
+      switchScreen('screen-playing');
+      renderLadder();
+      document.getElementById('ladder-sidebar').classList.remove('hidden');
+    }
+
+    function resetWordState() {
+      wordPotentialScore = BASE_WORD_SCORE;
+      isListeningMode = false;
+      wordStartTime = null;
+      reviewStartTime = null;
+      currentWordMistakes = [];
+      
+      const inputEl = document.getElementById('input-word');
+      inputEl.value = '';
+      inputEl.disabled = true;
+      inputEl.placeholder = "Click 'Listen' to start!";
+      
+      document.getElementById('btn-submit').disabled = true;
+      document.getElementById('txt-listen').innerText = 'Listen';
+      document.getElementById('ui-info-box').classList.remove('hidden');
+      
+      const feedbackEl = document.getElementById('ui-feedback');
+      feedbackEl.classList.add('hidden');
+      
+      updateWordPotentialUI();
+    }
+
+    function playWord() {
+      const targetWord = gameWords[currentStep - 1];
+      if (!targetWord) return;
+      
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(targetWord);
+      utterance.lang = 'en-CA';
+      utterance.rate = 0.35;
+      utterance.pitch = 1.1;
+      
+      const voices = window.speechSynthesis.getVoices();
+      const caVoice = voices.find(v => v.lang === 'en-CA' || v.name.includes('Canada') || v.name.includes('Linda') || v.name.includes('Heather'));
+      if (caVoice) utterance.voice = caVoice;
+
+      window.speechSynthesis.speak(utterance);
+
+      if (!wordStartTime) {
+        wordStartTime = Date.now();
+        isListeningMode = true;
+        
+        const inputEl = document.getElementById('input-word');
+        inputEl.disabled = false;
+        inputEl.placeholder = "Type the word here...";
+        document.getElementById('btn-submit').disabled = false;
+        document.getElementById('txt-listen').innerText = 'Listen Again';
+        document.getElementById('ui-info-box').classList.add('hidden');
+        
+        setTimeout(() => inputEl.focus(), 100);
+      }
+    }
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('input-word');
+      const inputValue = inputEl.value.trim();
+      
+      if (!isListeningMode || !inputValue) return;
+
+      const targetWord = gameWords[currentStep - 1];
+      if (!targetWord) return;
+
+      const normalizedInput = inputValue.toLowerCase();
+      const normalizedTarget = targetWord.toLowerCase();
+
+      if (normalizedInput === normalizedTarget) {
+        isListeningMode = false;
+        inputEl.disabled = true;
+        document.getElementById('btn-submit').disabled = true;
+        
+        const timeTakenSeconds = (Date.now() - wordStartTime) / 1000;
+        const gracePeriod = 2.5;
+        const penaltyTime = Math.max(0, timeTakenSeconds - gracePeriod);
+        const timePenalty = Math.floor(penaltyTime * 35);
+        const finalWordScore = Math.max(10, wordPotentialScore - timePenalty);
+        
+        gameStats.push({
+          word: targetWord,
+          timeTaken: timeTakenSeconds.toFixed(2) + 's',
+          mistakes: [...currentWordMistakes],
+          pointsEarned: finalWordScore
+        });
+
+        totalScore += finalWordScore;
+        document.getElementById('ui-total-score').innerText = totalScore;
+        
+        showFeedback(`Correct! +${finalWordScore} points`, true);
+
+        if (currentStep >= gameWords.length) {
+          saveScore(totalScore);
+          setTimeout(() => showEndScreen(true), 1500);
+        } else {
+          setTimeout(() => {
+            currentStep++;
+            renderLadder();
+            resetWordState();
+          }, 1500);
+        }
+      } else {
+        const distance = getLevenshteinDistance(normalizedTarget, normalizedInput);
+        const penalty = distance * MISTAKE_MULTIPLIER;
+        wordPotentialScore -= penalty;
+
+        currentWordMistakes.push({ input: inputValue, penalty: penalty });
+
+        if (wordPotentialScore <= 0) {
+          wordPotentialScore = 0;
+          updateWordPotentialUI();
+          saveScore(totalScore);
+          showEndScreen(false);
+        } else {
+          updateWordPotentialUI();
+          showFeedback(`Oops! You lost ${penalty} points. Review your spelling!`, false);
+          
+          reviewData = { target: targetWord, input: inputValue };
+          renderReviewModal();
+          document.getElementById('modal-review').classList.remove('hidden');
+          reviewStartTime = Date.now();
+        }
+      }
+    }
+
+    function closeReviewModal() {
+      if (reviewStartTime) {
+        const reviewDuration = Date.now() - reviewStartTime;
+        wordStartTime += (reviewDuration * 0.5);
+        reviewStartTime = null;
+      }
+      document.getElementById('modal-review').classList.add('hidden');
+      const inputEl = document.getElementById('input-word');
+      inputEl.value = '';
+      inputEl.focus();
+    }
+
     function shuffleArray(array) {
       const newArray = [...array];
       for (let i = newArray.length - 1; i > 0; i--) {
@@ -405,154 +617,6 @@
       return { matchedTargetIndices, matchedInputIndices };
     }
 
-    // UI and Interaction Functions
-    window.startGame = function() {
-      const shuffled = shuffleArray(LADDER_WORDS);
-      gameWords = shuffled.slice(0, 10);
-      gameState = 'playing';
-      currentStep = 1;
-      totalScore = 0;
-      gameStats = [];
-      
-      document.getElementById('ui-total-score').innerText = totalScore;
-      resetWordState();
-      switchScreen('screen-playing');
-      renderLadder();
-      document.getElementById('ladder-sidebar').classList.remove('hidden');
-    }
-
-    function resetWordState() {
-      wordPotentialScore = BASE_WORD_SCORE;
-      isListeningMode = false;
-      wordStartTime = null;
-      reviewStartTime = null;
-      currentWordMistakes = [];
-      
-      const inputEl = document.getElementById('input-word');
-      inputEl.value = '';
-      inputEl.disabled = true;
-      inputEl.placeholder = "Click 'Listen' to start!";
-      
-      document.getElementById('btn-submit').disabled = true;
-      document.getElementById('txt-listen').innerText = 'Listen';
-      document.getElementById('ui-info-box').classList.remove('hidden');
-      
-      const feedbackEl = document.getElementById('ui-feedback');
-      feedbackEl.classList.add('hidden');
-      
-      updateWordPotentialUI();
-    }
-
-    window.playWord = function() {
-      const targetWord = gameWords[currentStep - 1];
-      if (!targetWord) return;
-      
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(targetWord);
-      utterance.rate = 0.8;
-      window.speechSynthesis.speak(utterance);
-
-      if (!wordStartTime) {
-        wordStartTime = Date.now();
-        isListeningMode = true;
-        
-        const inputEl = document.getElementById('input-word');
-        inputEl.disabled = false;
-        inputEl.placeholder = "Type the word here...";
-        document.getElementById('btn-submit').disabled = false;
-        document.getElementById('txt-listen').innerText = 'Listen Again';
-        document.getElementById('ui-info-box').classList.add('hidden');
-        
-        setTimeout(() => inputEl.focus(), 100);
-      }
-    }
-
-    window.handleSubmit = function(e) {
-      e.preventDefault();
-      const inputEl = document.getElementById('input-word');
-      const inputValue = inputEl.value.trim();
-      
-      if (!isListeningMode || !inputValue) return;
-
-      const targetWord = gameWords[currentStep - 1];
-      if (!targetWord) return;
-
-      const normalizedInput = inputValue.toLowerCase();
-      const normalizedTarget = targetWord.toLowerCase();
-
-      if (normalizedInput === normalizedTarget) {
-        // Correct
-        isListeningMode = false;
-        inputEl.disabled = true;
-        document.getElementById('btn-submit').disabled = true;
-        
-        const timeTakenSeconds = (Date.now() - wordStartTime) / 1000;
-        const gracePeriod = 2.5;
-        const penaltyTime = Math.max(0, timeTakenSeconds - gracePeriod);
-        const timePenalty = Math.floor(penaltyTime * 35);
-        const finalWordScore = Math.max(10, wordPotentialScore - timePenalty);
-        
-        gameStats.push({
-          word: targetWord,
-          timeTaken: timeTakenSeconds.toFixed(2) + 's',
-          mistakes: [...currentWordMistakes],
-          pointsEarned: finalWordScore
-        });
-
-        totalScore += finalWordScore;
-        document.getElementById('ui-total-score').innerText = totalScore;
-        
-        showFeedback(`Correct! +${finalWordScore} points`, true);
-
-        if (currentStep >= gameWords.length) {
-          saveScore(totalScore);
-          setTimeout(() => showEndScreen(true), 1500);
-        } else {
-          setTimeout(() => {
-            currentStep++;
-            renderLadder();
-            resetWordState();
-          }, 1500);
-        }
-      } else {
-        // Incorrect
-        const distance = getLevenshteinDistance(normalizedTarget, normalizedInput);
-        const penalty = distance * MISTAKE_MULTIPLIER;
-        wordPotentialScore -= penalty;
-
-        currentWordMistakes.push({ input: inputValue, penalty: penalty });
-
-        if (wordPotentialScore <= 0) {
-          wordPotentialScore = 0;
-          updateWordPotentialUI();
-          saveScore(totalScore);
-          showEndScreen(false);
-        } else {
-          updateWordPotentialUI();
-          showFeedback(`Oops! You lost ${penalty} points. Review your spelling!`, false);
-          
-          // Show review modal
-          reviewData = { target: targetWord, input: inputValue };
-          renderReviewModal();
-          document.getElementById('modal-review').classList.remove('hidden');
-          reviewStartTime = Date.now();
-        }
-      }
-    }
-
-    window.closeReviewModal = function() {
-      if (reviewStartTime) {
-        const reviewDuration = Date.now() - reviewStartTime;
-        wordStartTime += (reviewDuration * 0.5);
-        reviewStartTime = null;
-      }
-      document.getElementById('modal-review').classList.add('hidden');
-      const inputEl = document.getElementById('input-word');
-      inputEl.value = '';
-      inputEl.focus();
-    }
-
-    // UI Render Helpers
     function switchScreen(screenId) {
       document.querySelectorAll('.screen-section').forEach(el => el.classList.add('hidden'));
       document.getElementById(screenId).classList.remove('hidden');
@@ -573,10 +637,9 @@
 
     function renderLadder() {
       const container = document.getElementById('ladder-container');
-      // Keep the background line
       let html = `<div class="absolute left-1/2 top-4 bottom-4 w-2 bg-white -translate-x-1/2 rounded-full z-0 shadow-inner"></div>`;
       
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < gameWords.length; i++) {
         const stepNum = i + 1;
         const isCompleted = stepNum < currentStep;
         const isActive = stepNum === currentStep;
@@ -651,7 +714,7 @@
       inputContainer.innerHTML = inputHtml;
     }
 
-    window.toggleScoresModal = function(show) {
+    function toggleScoresModal(show) {
       if (show) {
         renderScoresList();
         document.getElementById('modal-scores').classList.remove('hidden');
@@ -669,10 +732,11 @@
       
       let html = '';
       allScores.forEach(record => {
+        const playerName = record.user ? `[${record.user}] ` : '';
         html += `
           <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center hover:border-indigo-200 transition-colors">
             <div class="flex flex-col">
-              <span class="text-sm text-slate-400 font-medium">${record.date}</span>
+              <span class="text-sm text-slate-600 font-bold">${playerName}${record.date}</span>
             </div>
             <div class="font-black text-xl text-indigo-600">
               ${record.score} <span class="text-xs text-indigo-400">pts</span>
@@ -683,7 +747,7 @@
       container.innerHTML = html;
     }
 
-    window.downloadReport = function() {
+    function downloadReport() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allScores, null, 2));
       const downloadAnchorNode = document.createElement('a');
       downloadAnchorNode.setAttribute("href", dataStr);
