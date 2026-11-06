@@ -50,6 +50,17 @@
     .hidden {
       display: none !important;
     }
+    .adeline-bg {
+      background: url('https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80') center center / cover no-repeat fixed !important;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px) rotate(-5deg); }
+      75% { transform: translateX(4px) rotate(5deg); }
+    }
+    .animate-shake {
+      animation: shake 0.5s ease-in-out infinite;
+    }
   </style>
 </head>
 <body id="app-body" class="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 font-sans text-slate-800 flex flex-col m-0 p-0 transition-colors duration-1000">
@@ -107,6 +118,17 @@
         <div id="start-user-badge" class="mb-4 text-indigo-600 font-bold bg-indigo-50 px-4 py-1 rounded-full inline-block text-sm"></div>
         <h1 class="text-4xl font-black text-slate-800 mb-4">Skills Lab</h1>
         <p class="text-slate-500 font-medium mb-8">Climb the spelling ladder! Listen to the word, type it accurately, and do it fast for maximum points.</p>
+        
+        <div id="william-category-selector" class="hidden mb-6 flex flex-col items-center gap-2 w-full">
+          <span class="text-sm font-bold text-slate-500 uppercase tracking-widest">Select Word List</span>
+          <div class="flex gap-2 flex-wrap justify-center w-full max-w-md">
+            <button onclick="setWilliamCategory('beginning')" id="btn-cat-beginning" class="flex-1 min-w-[80px] px-2 py-2 rounded-xl border-2 border-slate-200 text-slate-600 font-bold transition-all">Beginning</button>
+            <button onclick="setWilliamCategory('middle')" id="btn-cat-middle" class="flex-1 min-w-[80px] px-2 py-2 rounded-xl border-2 border-slate-200 text-slate-600 font-bold transition-all">Middle</button>
+            <button onclick="setWilliamCategory('end')" id="btn-cat-end" class="flex-1 min-w-[80px] px-2 py-2 rounded-xl border-2 border-slate-200 text-slate-600 font-bold transition-all">End</button>
+            <button onclick="setWilliamCategory('mixed')" id="btn-cat-mixed" class="flex-1 min-w-[80px] px-2 py-2 rounded-xl border-2 bg-blue-100 border-blue-400 text-blue-700 font-bold transition-all">Mixed</button>
+          </div>
+        </div>
+
         <button onclick="startGame()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-blue-500/30 transform transition-all active:scale-95 flex items-center justify-center gap-3 text-xl">
           <i data-lucide="play" class="w-6 h-6 fill-current"></i>
           Start Learning
@@ -123,6 +145,16 @@
             </h3>
             <div class="w-full flex justify-center gap-2 sm:gap-3 flex-wrap" id="pet-rescue-track">
                 <!-- Pet bubbles injected here -->
+            </div>
+            
+            <div id="adeline-timer-container" class="hidden w-full max-w-xs mt-4 bg-white/50 p-2 rounded-xl border border-pink-200 shadow-sm">
+                <div class="flex justify-between text-[10px] sm:text-xs font-black uppercase text-pink-500 mb-1 tracking-widest">
+                    <span>Rescue Time</span>
+                    <span id="adeline-timer-text">15s</span>
+                </div>
+                <div class="w-full h-3 sm:h-4 bg-pink-100 rounded-full overflow-hidden shadow-inner">
+                    <div id="adeline-timer-fill" class="h-full bg-green-400 rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
+                </div>
             </div>
         </div>
 
@@ -178,10 +210,24 @@
 
         <div id="william-hint-box" class="hidden flex items-start gap-3 bg-blue-50 text-blue-800 p-4 rounded-xl text-sm sm:text-base font-medium mt-3 border-2 border-blue-200 shadow-sm w-full max-w-2xl mx-auto text-left">
           <i data-lucide="book-open" class="w-6 h-6 flex-shrink-0 text-blue-500 mt-1"></i>
-          <div class="flex flex-col gap-2 w-full">
-            <div><strong>Beginning:</strong><br>C- before A, O, U (or any consonant)<br>K- before E, I, Y</div>
-            <div><strong>Middle:</strong><br>-ck- after a short vowel<br>-c- after long vowel AND followed by A, O, U or before a consonant<br>-k- before E, I, Y</div>
-            <div><strong>End:</strong><br>-ck after a short vowel, or in a compound word<br>-k after a long vowel, vowel team, or consonants<br>-c at the end of multi-syllable words (except compound words)</div>
+          <div class="flex flex-col gap-3 w-full">
+            <div>
+              <strong class="text-blue-900 block mb-1">Beginning:</strong>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 text-xs sm:text-sm">C</span> before A, O, U or consonant (cat, cot, cut)<br>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 mt-1 text-xs sm:text-sm">K</span> before E, I (key, kite)
+            </div>
+            <div>
+              <strong class="text-blue-900 block mb-1">Middle:</strong>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 text-xs sm:text-sm">ck</span> after a short vowel (back)<br>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 mt-1 text-xs sm:text-sm">c</span> after long vowel and/or followed by A, O, U or consonant (local)<br>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 mt-1 text-xs sm:text-sm">k</span> before E, I (baker)
+            </div>
+            <div>
+              <strong class="text-blue-900 block mb-1">End:</strong>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 text-xs sm:text-sm">ck</span> after a short vowel, or in a compound word (backpack)<br>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 mt-1 text-xs sm:text-sm">k</span> after a long vowel, vowel team, or consonants (bake)<br>
+              <span class="inline-block bg-white border border-blue-300 rounded shadow-sm px-1.5 py-0.5 font-black text-blue-800 mr-1 mt-1 text-xs sm:text-sm">c</span> at the end of multi-syllable words (except compound words) (mimic)
+            </div>
             <div class="text-blue-600 font-black mt-1">C becomes soft when followed by E, I, Y</div>
           </div>
         </div>
@@ -314,12 +360,11 @@
 
   <!-- Main Game Logic -->
   <script>
-    const WILLIAM_WORDS = [
-      "kitchen", "kidney", "kettle", "kingdom", "camera", "college", "custom", "clever", 
-      "cabinet", "shock", "blank", "stuck", "trick", "clank", "shake", "plastic", 
-      "topic", "fabric", "picnic", "public", "attic", "magic", "clinic", "ticket", 
-      "cricket", "flicker", "bacon", "focus", "action", "active", "record", "picture", "doctor"
-    ];
+    const WILLIAM_WORDS = {
+      beginning: ["kitchen", "kidney", "kettle", "kingdom", "camera", "college", "custom", "clever", "cabinet", "carve", "kitten", "castle"],
+      middle: ["ticket", "cricket", "flicker", "bacon", "focus", "action", "active", "record", "picture", "doctor", "monkey"],
+      end: ["shock", "blank", "stuck", "trick", "clank", "shake", "plastic", "topic", "fabric", "picnic", "public", "attic", "magic", "clinic"]
+    };
     
     const ADELINE_WORDS = [
       "saw", "jaw", "draw", "claw", "lawn", "yawn", "hawk", 
@@ -351,6 +396,7 @@
     const CUTE_PETS = ['🐶', '🐱', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦄', '🦋', '🐢', '🦖', '🐙'];
 
     let currentUser = "";
+    let williamCategory = "mixed";
     let LADDER_WORDS = [];
     let gameState = 'start';
     let currentStep = 1;
@@ -367,6 +413,9 @@
     let allScores = [];
     let topScore = 0;
     let currentSessionPets = [];
+    let adelinePetStatuses = [];
+    let adelineCurrentPetLost = false;
+    let adelineTimerInterval = null;
     
     if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
@@ -432,7 +481,14 @@
 
     function selectUser(name) {
       currentUser = name;
-      LADDER_WORDS = name === 'Adeline' ? ADELINE_WORDS : WILLIAM_WORDS;
+      
+      if (name === 'Adeline') {
+        LADDER_WORDS = ADELINE_WORDS;
+        document.getElementById('william-category-selector').classList.add('hidden');
+      } else {
+        document.getElementById('william-category-selector').classList.remove('hidden');
+        setWilliamCategory('mixed'); // Default
+      }
       
       document.getElementById('modal-user-select').classList.add('hidden');
       
@@ -455,6 +511,12 @@
       playScreen.className = playScreen.className.replace(/bg-\w+-\d+|bg-white/, BOX_THEMES[0]);
       currentBgIndex = 0;
       
+      if (name === 'Adeline') {
+          body.classList.add('adeline-bg');
+      } else {
+          body.classList.remove('adeline-bg');
+      }
+      
       document.getElementById('adeline-hint-box').classList.add('hidden');
       document.getElementById('william-hint-box').classList.add('hidden');
       document.getElementById('adeline-pet-rescue').classList.add('hidden');
@@ -469,7 +531,29 @@
       document.getElementById('modal-user-select').classList.remove('hidden');
     }
 
+    function setWilliamCategory(cat) {
+      williamCategory = cat;
+      const cats = ['beginning', 'middle', 'end', 'mixed'];
+      cats.forEach(c => {
+        const btn = document.getElementById(`btn-cat-${c}`);
+        if (!btn) return;
+        if (c === cat) {
+          btn.className = "flex-1 min-w-[80px] px-2 py-2 rounded-xl border-2 bg-blue-100 border-blue-400 text-blue-700 font-bold transition-all";
+        } else {
+          btn.className = "flex-1 min-w-[80px] px-2 py-2 rounded-xl border-2 border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all";
+        }
+      });
+    }
+
     function startGame() {
+      if (currentUser === 'William') {
+        if (williamCategory === 'mixed') {
+          LADDER_WORDS = [...WILLIAM_WORDS.beginning, ...WILLIAM_WORDS.middle, ...WILLIAM_WORDS.end];
+        } else {
+          LADDER_WORDS = [...WILLIAM_WORDS[williamCategory]];
+        }
+      }
+
       const shuffled = shuffleArray(LADDER_WORDS);
       gameWords = shuffled.slice(0, Math.min(10, LADDER_WORDS.length));
       gameState = 'playing';
@@ -492,6 +576,8 @@
         document.getElementById('adeline-pet-rescue').classList.remove('hidden');
         document.getElementById('ladder-sidebar').classList.add('hidden');
         currentSessionPets = shuffleArray(CUTE_PETS).slice(0, gameWords.length);
+        adelinePetStatuses = new Array(gameWords.length).fill('locked');
+        adelineCurrentPetLost = false;
       } else {
         document.getElementById('adeline-hint-box').classList.add('hidden');
         document.getElementById('william-hint-box').classList.remove('hidden');
@@ -521,6 +607,12 @@
       inputEl.disabled = true;
       inputEl.placeholder = "Click 'Listen' to start!";
       
+      clearInterval(adelineTimerInterval);
+      adelineTimerInterval = null;
+      adelineCurrentPetLost = false;
+      const timerContainer = document.getElementById('adeline-timer-container');
+      if (timerContainer) timerContainer.classList.add('hidden');
+      
       document.getElementById('btn-submit').disabled = true;
       document.getElementById('txt-listen').innerText = 'Listen';
       document.getElementById('ui-info-box').classList.remove('hidden');
@@ -540,9 +632,6 @@
       // Adding a period forces the voice to enunciate clearly with a downward, finished inflection.
       const utterance = new SpeechSynthesisUtterance(targetWord + ".");
       utterance.lang = 'en-CA';
-      
-      // Extremely slow rates stretch the audio and distort consonants (k -> g). 
-      // 0.75 preserves crisp consonants while still being slower than normal.
       utterance.rate = 0.75;
       utterance.pitch = 1.0;
       
@@ -564,6 +653,42 @@
         wordStartTime = Date.now();
         isListeningMode = true;
         
+        if (currentUser === 'Adeline' && !adelineTimerInterval && !adelineCurrentPetLost) {
+            document.getElementById('adeline-timer-container').classList.remove('hidden');
+            let timeLeft = 15;
+            const fillEl = document.getElementById('adeline-timer-fill');
+            const textEl = document.getElementById('adeline-timer-text');
+            
+            fillEl.style.width = '100%';
+            fillEl.className = 'h-full bg-green-400 rounded-full transition-all duration-1000 ease-linear';
+            textEl.innerText = '15s';
+            textEl.classList.remove('text-red-500', 'animate-pulse');
+
+            adelineTimerInterval = setInterval(() => {
+                if (!isListeningMode) return clearInterval(adelineTimerInterval);
+                timeLeft -= 1;
+                const pct = Math.max(0, (timeLeft / 15) * 100);
+                fillEl.style.width = `${pct}%`;
+                textEl.innerText = `${timeLeft}s`;
+
+                if (timeLeft <= 5) {
+                    fillEl.className = 'h-full bg-red-400 rounded-full transition-all duration-1000 ease-linear';
+                    textEl.classList.add('text-red-500', 'animate-pulse');
+                } else if (timeLeft <= 10) {
+                    fillEl.className = 'h-full bg-orange-400 rounded-full transition-all duration-1000 ease-linear';
+                }
+
+                if (timeLeft <= 0) {
+                    adelineCurrentPetLost = true;
+                    clearInterval(adelineTimerInterval);
+                    textEl.innerText = '0s';
+                    textEl.classList.remove('text-red-500', 'animate-pulse');
+                    renderAdelineProgress();
+                    showFeedback("Oh no! The pet ran away! Keep trying to spell the word.", false);
+                }
+            }, 1000);
+        }
+
         const inputEl = document.getElementById('input-word');
         inputEl.disabled = false;
         inputEl.placeholder = "Type the word here...";
@@ -592,6 +717,7 @@
         isListeningMode = false;
         inputEl.disabled = true;
         document.getElementById('btn-submit').disabled = true;
+        clearInterval(adelineTimerInterval);
         
         const timeTakenSeconds = (Date.now() - wordStartTime) / 1000;
         const gracePeriod = 2.5;
@@ -611,19 +737,27 @@
         
         showFeedback(`Correct! +${finalWordScore} points`, true);
 
+        if (currentUser === 'Adeline') {
+            if (!adelineCurrentPetLost) {
+                adelinePetStatuses[currentStep - 1] = 'rescued';
+                if (typeof confetti !== 'undefined') {
+                  confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA', '#98FB98'],
+                    zIndex: 1000
+                  });
+                }
+            } else {
+                adelinePetStatuses[currentStep - 1] = 'lost';
+            }
+        }
+
         if (currentStep >= gameWords.length) {
           if (currentUser === 'Adeline') {
               currentStep++;
               renderAdelineProgress();
-              if (typeof confetti !== 'undefined') {
-                confetti({
-                  particleCount: 100,
-                  spread: 70,
-                  origin: { y: 0.6 },
-                  colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA', '#98FB98'],
-                  zIndex: 1000
-                });
-              }
           }
           saveScore(totalScore);
           setTimeout(() => showEndScreen(true), 1500);
@@ -634,28 +768,13 @@
              renderAdelineProgress();
              
              // Change color theme!
-             const body = document.getElementById('app-body');
              const playScreen = document.getElementById('screen-playing');
-             const oldTheme = BG_THEMES[currentBgIndex];
              const oldBoxTheme = BOX_THEMES[currentBgIndex];
              
              currentBgIndex = (currentBgIndex + 1) % BG_THEMES.length;
              
-             const newTheme = BG_THEMES[currentBgIndex];
              const newBoxTheme = BOX_THEMES[currentBgIndex];
-             
-             body.className = body.className.replace(oldTheme, newTheme);
              playScreen.className = playScreen.className.replace(oldBoxTheme, newBoxTheme);
-             
-             if (typeof confetti !== 'undefined') {
-               confetti({
-                 particleCount: 50,
-                 spread: 50,
-                 origin: { y: 0.6 },
-                 colors: ['#FFC0CB', '#FF69B4', '#FFD700', '#87CEFA', '#98FB98'],
-                 zIndex: 1000
-               });
-             }
           } else {
              renderLadder();
           }
@@ -670,6 +789,11 @@
         wordPotentialScore -= penalty;
 
         currentWordMistakes.push({ input: inputValue, penalty: penalty });
+        
+        if (currentUser === 'Adeline') {
+            adelineCurrentPetLost = true;
+            renderAdelineProgress();
+        }
 
         if (wordPotentialScore <= 0) {
           wordPotentialScore = 0;
@@ -817,13 +941,18 @@
         const isCompleted = i < currentStep - 1;
         const isActive = i === currentStep - 1;
         const pet = currentSessionPets ? currentSessionPets[i] : '🐶';
+        const status = adelinePetStatuses[i];
 
-        if (isCompleted) {
+        if (status === 'rescued' || (isCompleted && status !== 'lost')) {
           html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-white border-4 border-green-300 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-md transform hover:scale-110 transition-transform bounce-in">${pet}</div>`;
+        } else if (status === 'lost' || (isCompleted && status === 'lost')) {
+          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-slate-200 border-4 border-slate-300 rounded-full flex items-center justify-center text-xl sm:text-2xl shadow-inner opacity-70 grayscale">💨</div>`;
         } else if (isActive) {
-          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-pink-100 border-4 border-pink-400 border-dashed rounded-full flex items-center justify-center text-lg sm:text-xl shadow-inner animate-pulse">✨</div>`;
+          const shaking = adelineCurrentPetLost ? 'animate-shake border-red-400 bg-red-100' : 'animate-pulse border-pink-400 bg-pink-100 border-dashed';
+          const activePet = adelineCurrentPetLost ? '💨' : pet;
+          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 border-4 rounded-full flex items-center justify-center text-lg sm:text-xl shadow-inner ${shaking}">${activePet}</div>`;
         } else {
-          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 border-4 border-slate-200 rounded-full flex items-center justify-center text-base sm:text-lg shadow-inner opacity-50 text-slate-400">🔒</div>`;
+          html += `<div class="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 border-4 border-slate-200 rounded-full flex items-center justify-center text-base sm:text-lg shadow-inner opacity-50 text-slate-400">❓</div>`;
         }
       }
       track.innerHTML = html;
@@ -852,8 +981,14 @@
       if (won) {
         iconBox.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-green-100 text-green-500";
         icon.setAttribute('data-lucide', 'trophy');
-        title.innerText = "Amazing Job!";
-        message.innerText = "You completed the entire ladder!";
+        if (currentUser === 'Adeline') {
+            const rescuedCount = adelinePetStatuses.filter(s => s === 'rescued').length;
+            title.innerText = rescuedCount === gameWords.length ? "Perfect Rescue!" : "Great Effort!";
+            message.innerText = `You rescued ${rescuedCount} out of ${gameWords.length} pets!`;
+        } else {
+            title.innerText = "Amazing Job!";
+            message.innerText = "You completed the entire ladder!";
+        }
       } else {
         iconBox.className = "w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-red-100 text-red-500";
         icon.setAttribute('data-lucide', 'x');
