@@ -51,7 +51,7 @@
       display: none !important;
     }
     .adeline-bg {
-      background: url('https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1600&q=80') center center / cover no-repeat fixed !important;
+      background: url('https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1600&q=80') center center / cover no-repeat fixed !important;
     }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
@@ -136,7 +136,7 @@
       </div>
 
       <!-- PLAYING SCREEN -->
-      <div id="screen-playing" class="hidden w-full max-w-4xl bg-white p-4 sm:p-8 rounded-3xl shadow-xl flex flex-col relative animate-fade-in-up screen-section transition-colors duration-1000">
+      <div id="screen-playing" class="hidden w-full max-w-4xl bg-white/90 backdrop-blur-sm p-4 sm:p-8 rounded-3xl shadow-xl flex flex-col relative animate-fade-in-up screen-section transition-colors duration-1000">
         
         <!-- ADELINE'S PET RESCUE MINIGAME -->
         <div id="adeline-pet-rescue" class="hidden w-full bg-pink-50 p-3 sm:p-4 rounded-2xl border-2 border-pink-200 mb-4 flex flex-col items-center shadow-sm">
@@ -384,12 +384,12 @@
     ];
     
     const BOX_THEMES = [
-      'bg-white',
-      'bg-pink-50',
-      'bg-green-50',
-      'bg-yellow-50',
-      'bg-purple-50',
-      'bg-indigo-50'
+      'bg-white/90',
+      'bg-pink-300/90',
+      'bg-green-300/90',
+      'bg-yellow-300/90',
+      'bg-purple-300/90',
+      'bg-indigo-300/90'
     ];
     let currentBgIndex = 0;
     
@@ -507,8 +507,14 @@
       
       const body = document.getElementById('app-body');
       const playScreen = document.getElementById('screen-playing');
-      body.className = body.className.replace(/from-\w+-\d+\sto-\w+-\d+/, BG_THEMES[0]);
-      playScreen.className = playScreen.className.replace(/bg-\w+-\d+|bg-white/, BOX_THEMES[0]);
+      
+      BG_THEMES.forEach(t => body.classList.remove(...t.split(' ')));
+      body.classList.add(...BG_THEMES[0].split(' '));
+      
+      BOX_THEMES.forEach(t => playScreen.classList.remove(t));
+      playScreen.classList.remove('bg-white', 'bg-pink-50', 'bg-green-50', 'bg-yellow-50', 'bg-purple-50', 'bg-indigo-50');
+      playScreen.classList.add(BOX_THEMES[0]);
+      
       currentBgIndex = 0;
       
       if (name === 'Adeline') {
@@ -566,8 +572,14 @@
       // Reset background and box theme
       const body = document.getElementById('app-body');
       const playScreen = document.getElementById('screen-playing');
-      body.className = body.className.replace(/from-\w+-\d+\sto-\w+-\d+/, BG_THEMES[0]);
-      playScreen.className = playScreen.className.replace(/bg-\w+-\d+|bg-white/, BOX_THEMES[0]);
+      
+      BG_THEMES.forEach(t => body.classList.remove(...t.split(' ')));
+      body.classList.add(...BG_THEMES[0].split(' '));
+      
+      BOX_THEMES.forEach(t => playScreen.classList.remove(t));
+      playScreen.classList.remove('bg-white', 'bg-pink-50', 'bg-green-50', 'bg-yellow-50', 'bg-purple-50', 'bg-indigo-50');
+      playScreen.classList.add(BOX_THEMES[0]);
+      
       currentBgIndex = 0;
       
       if (currentUser === 'Adeline') {
@@ -769,12 +781,11 @@
              
              // Change color theme!
              const playScreen = document.getElementById('screen-playing');
-             const oldBoxTheme = BOX_THEMES[currentBgIndex];
+             playScreen.classList.remove(BOX_THEMES[currentBgIndex]);
              
              currentBgIndex = (currentBgIndex + 1) % BG_THEMES.length;
              
-             const newBoxTheme = BOX_THEMES[currentBgIndex];
-             playScreen.className = playScreen.className.replace(oldBoxTheme, newBoxTheme);
+             playScreen.classList.add(BOX_THEMES[currentBgIndex]);
           } else {
              renderLadder();
           }
