@@ -214,7 +214,7 @@
                 <span id="txt-mic" class="font-bold text-lg sm:text-xl">Speak</span>
             </button>
 
-            <button onclick="processCorrectAnswer()" class="mt-2 text-[10px] sm:text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-wider border-2 border-slate-200 px-4 py-1.5 rounded-full bg-slate-50 shadow-sm active:scale-95 flex items-center gap-1">
+            <button id="btn-parent-override" onclick="processCorrectAnswer()" class="hidden mt-2 text-[10px] sm:text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-wider border-2 border-slate-200 px-4 py-1.5 rounded-full bg-slate-50 shadow-sm active:scale-95 flex items-center gap-1">
                 <i data-lucide="check-circle" class="w-3 h-3"></i> Parent Override (Correct)
             </button>
         </div>
@@ -435,6 +435,99 @@
     let adelinePetStatuses = [];
     let adelineCurrentPetLost = false;
     let adelineTimerInterval = null;
+
+    // --- Offline Audio Preloader & Cache ---
+    const ALL_PRACTICE_WORDS = Array.from(new Set([
+      ...WILLIAM_WORDS.beginning,
+      ...WILLIAM_WORDS.middle,
+      ...WILLIAM_WORDS.end,
+      ...ADELINE_WORDS
+    ]));
+    const preloadedUtterances = new Map();
+    const preloadedAudioBuffers = new Map();
+    let offlineAudioCtx = null;
+
+    function getBestCanadianVoice() {
+      try {
+        const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        let selectedVoice = voices.find(v => v && v.lang && v.name && v.lang.includes('en') && (v.name.includes('Enhanced') || v.name.includes('Premium') || v.name.includes('Google')));
+        if (!selectedVoice) {
+          selectedVoice = voices.find(v => v && ((v.lang === 'en-CA') || (v.name && (v.name.includes('Canada') || v.name.includes('Linda') || v.name.includes('Heather')))));
+        }
+        return selectedVoice || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function buildUtterance(word) {
+      const utterance = new SpeechSynthesisUtterance(word + ".");
+      utterance.lang = 'en-CA';
+      utterance.rate = 0.75;
+      utterance.pitch = 1.0;
+      const voice = getBestCanadianVoice();
+      if (voice) utterance.voice = voice;
+      return utterance;
+    }
+
+    async function preloadAllWordAudio() {
+      // 1. Pre-warm and cache SpeechSynthesisUtterance objects for every word
+      if ('speechSynthesis' in window) {
+        ALL_PRACTICE_WORDS.forEach(word => {
+          preloadedUtterances.set(word.toLowerCase(), buildUtterance(word));
+        });
+      }
+
+      // 2. Also pre-fetch and decode into RAM (AudioBuffers) + CacheStorage for true offline playback if online
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass && !offlineAudioCtx) {
+          offlineAudioCtx = new AudioContextClass();
+        }
+        const cache = ('caches' in window) ? await caches.open('skills-lab-word-audio-v1') : null;
+
+        await Promise.allSettled(ALL_PRACTICE_WORDS.map(async (word) => {
+          const key = word.toLowerCase();
+          const ttsUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(key)}&type=2`;
+          let arrayBuffer = null;
+
+          if (cache) {
+            const cachedResp = await cache.match(ttsUrl);
+            if (cachedResp) {
+              arrayBuffer = await cachedResp.arrayBuffer();
+            }
+          }
+
+          if (!arrayBuffer && navigator.onLine) {
+            const resp = await fetch(ttsUrl);
+            if (resp.ok) {
+              if (cache) await cache.put(ttsUrl, resp.clone());
+              arrayBuffer = await resp.arrayBuffer();
+            }
+          }
+
+          if (arrayBuffer && offlineAudioCtx) {
+            const audioBuffer = await offlineAudioCtx.decodeAudioData(arrayBuffer.slice(0));
+            preloadedAudioBuffers.set(key, audioBuffer);
+          }
+        }));
+      } catch (err) {
+        console.warn("Background audio buffer caching skipped, using pre-warmed local TTS.", err);
+      }
+    }
+
+    // Wake AudioContext & SpeechSynthesis on first user interaction so mobile devices have zero delay
+    function unlockAudioEngine() {
+      if (offlineAudioCtx && offlineAudioCtx.state === 'suspended') {
+        offlineAudioCtx.resume().catch(() => {});
+      }
+      if ('speechSynthesis' in window && preloadedUtterances.size === 0) {
+        preloadAllWordAudio();
+      }
+    }
+    window.addEventListener('pointerdown', unlockAudioEngine, { once: true });
+    window.addEventListener('touchstart', unlockAudioEngine, { once: true });
+    window.addEventListener('load', preloadAllWordAudio);
     
     // --- Web Speech API Setup for Reading Mode ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -467,7 +560,8 @@
 
         recognition.onerror = (event) => {
             if (event.error === 'network') {
-                showFeedback("Speech server network error. If this continues, use the Parent Override button below!", false);
+                showFeedback("Speech server network error.", false);
+                document.getElementById('btn-parent-override').classList.remove('hidden');
             } else {
                 showFeedback("Microphone Error: " + event.error + ". Try again!", false);
             }
@@ -485,7 +579,10 @@
     // --- Voice Synthesis (For Spelling Mode) ---
     if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
-        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.getVoices();
+            preloadAllWordAudio();
+        };
     }
 
     function loadScores() {
@@ -714,6 +811,7 @@
           document.getElementById('ui-spelling').classList.remove('flex');
           document.getElementById('ui-reading').classList.remove('hidden');
           document.getElementById('ui-reading').classList.add('flex');
+          document.getElementById('btn-parent-override').classList.add('hidden');
           
           document.getElementById('reading-target-word').innerText = gameWords[currentStep - 1];
           document.getElementById('ui-info-text').innerHTML = "Clicking <strong>Speak</strong> starts a hidden timer. Read the word on the screen out loud as quickly and accurately as you can!";
@@ -740,26 +838,25 @@
     function playWord() {
       const targetWord = gameWords[currentStep - 1];
       if (!targetWord) return;
+      const key = targetWord.toLowerCase();
       
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(targetWord + ".");
-      utterance.lang = 'en-CA';
-      utterance.rate = 0.75;
-      utterance.pitch = 1.0;
-      
-      // Robust voice selector wrapping to prevent crashes from malformed browser voices
-      try {
-          const voices = window.speechSynthesis.getVoices();
-          let selectedVoice = voices.find(v => v && v.lang && v.name && v.lang.includes('en') && (v.name.includes('Enhanced') || v.name.includes('Premium') || v.name.includes('Google')));
-          if (!selectedVoice) {
-              selectedVoice = voices.find(v => v && ((v.lang === 'en-CA') || (v.name && (v.name.includes('Canada') || v.name.includes('Linda') || v.name.includes('Heather')))));
-          }
-          if (selectedVoice) utterance.voice = selectedVoice;
-      } catch (err) {
-          console.warn("Failed to apply custom voice filter, using browser default.", err);
+      // 1. Instant zero-latency playback from preloaded RAM AudioBuffer (works 100% offline once cached)
+      const cachedBuffer = preloadedAudioBuffers.get(key);
+      if (cachedBuffer && offlineAudioCtx) {
+        if (offlineAudioCtx.state === 'suspended') {
+          offlineAudioCtx.resume().catch(() => {});
+        }
+        const source = offlineAudioCtx.createBufferSource();
+        source.buffer = cachedBuffer;
+        source.playbackRate.value = 0.88; // Crisp, clear enunciation
+        source.connect(offlineAudioCtx.destination);
+        source.start(0);
+      } else if ('speechSynthesis' in window) {
+        // 2. Instant fallback to pre-warmed SpeechSynthesisUtterance
+        window.speechSynthesis.cancel();
+        const utterance = preloadedUtterances.get(key) || buildUtterance(targetWord);
+        window.speechSynthesis.speak(utterance);
       }
-
-      window.speechSynthesis.speak(utterance);
 
       if (!wordStartTime) {
         wordStartTime = Date.now();
